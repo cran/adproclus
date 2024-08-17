@@ -4,17 +4,15 @@
 \alias{plot_vars_by_comp}
 \title{Plot variable to component matrix of ADPROCLUS solution}
 \usage{
-plot_vars_by_comp(
-  model,
-  title = "B' of Low Dimensional ADPROCLUS Solution",
-  ...
-)
+plot_vars_by_comp(model, title = NULL, label_color = "black", ...)
 }
 \arguments{
 \item{model}{Object of class \code{adpc}. Must be \strong{Low dimensional}
 ADPROCLUS solution}
 
-\item{title}{String. Default: "B' of Low Dimensional ADPROCLUS Solution"}
+\item{title}{String. Optional title.}
+
+\item{label_color}{String. The color of the text labels. Default: "black"}
 
 \item{...}{Additional arguments passing to the
 \code{corrplot::corrplot()} function, to customize the plot}
@@ -28,7 +26,7 @@ Produce a representation of variable to component matrix
 of class \code{adpc}. The plot displays the scores in the style of a
 correlation plot.
 \strong{NOTE:} This function can be called through the
-\code{plot(model, type = "VarsByComp")} function
+\code{plot(model, type = "vars_by_comp")} function
 with model an object of class \code{adpc}.
 }
 \examples{

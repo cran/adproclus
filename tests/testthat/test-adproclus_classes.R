@@ -60,12 +60,21 @@ test_that("plot test", {
 
   expect_no_condition(plot(model))
   expect_no_condition(plot(modelLD))
-  expect_no_condition(plot(model, type = "Network"))
-  expect_no_condition(plot(modelLD, type = "Network"))
-  expect_no_condition(plot(model, type = "Profiles"))
-  expect_no_condition(plot(modelLD, type = "Profiles"))
+  expect_no_condition(plot(model, type = "network"))
+  expect_no_condition(plot(modelLD, type = "network"))
+  expect_no_condition(plot(model, type = "profiles"))
+  expect_no_condition(plot(modelLD, type = "profiles"))
   expect_error(plot(model, type = "vars_by_comp"))
   expect_no_condition(plot(modelLD, type = "vars_by_comp"))
   expect_equal(plot(model), plot.adpc(model))
   expect_equal(plot(modelLD), plot.adpc(modelLD))
+})
+
+test_that("cluster means test", {
+        x <- CGdata
+        model <- adproclus(x, nclusters = 2, seed = 1)
+        modelLD <- adproclus_low_dim(x, nclusters = 3, ncomponents = 2, seed = 1)
+
+        expect_no_condition(cluster_means(CGdata, model))
+        expect_no_condition(cluster_means(CGdata, modelLD))
 })

@@ -4,13 +4,15 @@
 \alias{plot_profiles}
 \title{Plot profile matrix of ADPROCLUS solution}
 \usage{
-plot_profiles(model, title = "Profiles of ADPROCLUS solution", ...)
+plot_profiles(model, title = NULL, label_color = "black", ...)
 }
 \arguments{
 \item{model}{Object of class \code{adpc}. (Low dimensional) ADPROCLUS
 solution}
 
-\item{title}{String. Default: "Profiles of ADPROCLUS solution"}
+\item{title}{String. Optional title.}
+
+\item{label_color}{String. The color of the text labels. Default: "black"}
 
 \item{...}{Additional arguments passing to the
 \code{corrplot::corrplot()} function, to customize the plot.}
@@ -24,7 +26,7 @@ Produce a representation of profile matrix \eqn{P}
 solution of class \code{adpc}.
 The plot displays the profiles in the style of a correlation plot.
 \strong{NOTE:} This function can also be called through the
-\code{plot(model, type = "Profiles")} function with model an object of
+\code{plot(model, type = "profiles")} function with model an object of
 class \code{adpc}.
 }
 \examples{

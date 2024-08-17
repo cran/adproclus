@@ -6,10 +6,10 @@
 \usage{
 plot_cluster_network(
   model,
-  title = "Cluster network of ADPROCLUS solution",
+  title = NULL,
   relative_overlap = TRUE,
   filetype = NULL,
-  filename = NULL,
+  filename = "network_plot",
   ...
 )
 }
@@ -17,7 +17,7 @@ plot_cluster_network(
 \item{model}{ADPROCLUS solution (class: \code{adpc}). Low dimensional model
 possible.}
 
-\item{title}{String. Default: " Cluster network of ADPROCLUS solution"}
+\item{title}{String. Optional title.}
 
 \item{relative_overlap}{Logical. If \code{TRUE} (default), the number of
 observations belonging to two clusters
@@ -29,7 +29,7 @@ edges.}
 Possible choices: \code{"R", "pdf", "svg", "tex", "jpg", "tiff", "png", ""}
 Default: \code{NULL} does not create a file.}
 
-\item{filename}{Optional. Name of the file without extension.}
+\item{filename}{Optional. Name of the file without extension. Default: "network_plot"}
 
 \item{...}{Additional arguments passing to the
 \code{qgraph::qgraph()} function, to customize the graph visualization.}
@@ -48,7 +48,7 @@ The numerical edge labels can be relative
 (number of overlap observations / total observations)
 or absolute (number of observations in both clusters).
 \strong{NOTE:} This function can be called through the
-\code{plot(model, type = "Network")} function with model an
+\code{plot(model, type = "network")} function with model an
 object of class \code{adpc}.
 }
 \examples{

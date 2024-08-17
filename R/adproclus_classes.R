@@ -101,14 +101,15 @@ adpc <- function(A, P,
 #'
 #' For an object of class \code{adpc} as input, this method yields a summary
 #' object of class \code{summary.adpc} including group characteristics of the
-#' clusters in the solution. Works for both full and low dimensional solutions.
+#' clusters in the solution in terms of the model variables.
+#' Works for both full and low dimensional solutions.
 #' Adjust the parameters \code{digits, matrix_rows, matrix_cols} to change the
 #' level of detail for the printing of the summary.
 #'
 #' @param object ADPROCLUS solution (class: \code{adpc}). Low dimensional model
 #' possible.
 #' @param title String. Default: "ADPROCLUS solution"
-#' @param digits Integer. The number of digits that all decimal numbers will be
+#' @param digits Integer. The number of decimal places that all decimal numbers will be
 #' rounded to.
 #' @param matrix_rows Integer. The number of matrix rows to display. OPTIONAL
 #' @param matrix_cols Integer. The number of matrix columns to display. OPTIONAL
@@ -134,7 +135,7 @@ summary.adpc <- function(object,
 
   A <- object$A
   k <- ncol(A)
-  cluster_sizes_overlaps <- matrix(rep(0, k^2), k, k)
+  cluster_sizes_overlaps <- matrix(rep(0, (k+1)^2), k+1, k+1)
 
   for (i in 1:k) {
     for (j in 1:k) {
@@ -142,22 +143,36 @@ summary.adpc <- function(object,
       cluster_sizes_overlaps[j, i] <- cluster_sizes_overlaps[i, j]
     }
   }
+  cluster_sizes_overlaps[k+1, k+1] <- sum(rowSums(A) == 0)
+
   cluster_characteristics <- list()
   if (is.null(object$C)) {
     for (i in 1:k) {
       members <- which(as.logical(A[, i]))
+
+      cluster_charac_table <- rbind(matrixStats::colMins(object$model[members, , drop = FALSE]),
+                                    colMeans(object$model[members, , drop = FALSE]),
+                                    matrixStats::colMaxs(object$model[members, , drop = FALSE]))
+      colnames(cluster_charac_table) <- colnames(object$model)
+      rownames(cluster_charac_table) <- c("Min", "Mean", "Max")
+
       cluster_characteristics <- append(
         cluster_characteristics,
-        list(summary(object$model[members, , drop = FALSE])[c(1, 4, 6), , drop = FALSE])
+        list(cluster_charac_table)
       )
       names(cluster_characteristics)[i] <- colnames(A)[i]
     }
   } else {
     for (i in 1:k) {
       members <- which(as.logical(A[, i]))
+      cluster_charac_table <- rbind(matrixStats::colMins(object$model_lowdim[members, , drop = FALSE]),
+                                    colMeans(object$model_lowdim[members, , drop = FALSE]),
+                                    matrixStats::colMaxs(object$model_lowdim[members, , drop = FALSE]))
+      colnames(cluster_charac_table) <- colnames(object$model_lowdim)
+      rownames(cluster_charac_table) <- c("Min", "Mean", "Max")
       cluster_characteristics <- append(
         cluster_characteristics,
-        list(summary(object$model_lowdim[members, , drop = FALSE])[c(1, 4, 6), , drop = FALSE])
+        list(cluster_charac_table)
       )
       names(cluster_characteristics)[i] <- colnames(A)[i]
     }
@@ -219,14 +234,15 @@ print.summary.adpc <- function(x, ...) {
   cat("Cluster sizes and overlaps:\n")
   print(x$cluster_sizes_overlaps)
   cat(" (diagonal entries: number of observations in a cluster)\n")
-  cat(" (off-diagonal entry [i,j]:  number of observations both in cluster i and j)\n\n")
+  cat(" (off-diagonal entry [i,j]:  number of observations both in cluster i and j)\n")
+  cat(" (last row/column represents additional baseline cluster)\n\n")
   if (is.null(x$model_complete$C)) {
-    cat("Summary statistics of model variables per cluster:\n")
+    cat("Summary statistics of approximated model variables per cluster:\n")
     if (n_var_true > n_var_inc) {
       cat("[", n_var_true - n_var_inc, "variables per cluster were omitted ]\n")
     }
   } else {
-    cat("Summary statistics of low dimensional components per cluster:\n")
+    cat("Summary statistics of approximated low dimensional components per cluster:\n")
     if (n_var_true > n_var_inc) {
       cat(
         "[", n_var_true - n_var_inc,
@@ -238,8 +254,8 @@ print.summary.adpc <- function(x, ...) {
   lapply(
     seq_len(ncol(x$model_complete$A)),
     function(i) {
-      cat(names(x$cluster_characteristics)[i], "\n")
-      print(x$cluster_characteristics[[i]][, 1:n_var_inc, drop = FALSE])
+      cat("\n", names(x$cluster_characteristics)[i], "\n")
+      print(round(x$cluster_characteristics[[i]][, 1:n_var_inc, drop = FALSE], x$print_settings$digits))
     }
   )
 
@@ -272,12 +288,8 @@ print.summary.adpc <- function(x, ...) {
 #' }
 #'
 #' @param x Object of class \code{adpc}. (Low dimensional) ADPROCLUS solution
-#' @param type Choice for type of plot: one of \code{"Network", "Profiles",
-#' "vars_by_comp"}. Default: \code{"Network"}.
-#' @param title String. OPTIONAL.
-#' @param relative_overlap Logical, only applies to plot of
-#' \code{type = "Network"}. If \code{TRUE} (default), the number of observations
-#' belonging to two clusters is divided by the total number of observations.
+#' @param type Choice for type of plot: one of \code{"network", "profiles",
+#' "vars_by_comp"}. Default: \code{"network"}. Partial matching allowed.
 #' @param ... additional arguments will be passed on to the functions
 #' \code{plot_cluster_network(), plot_profiles(), plot_vars_by_comp()}
 #'
@@ -292,28 +304,24 @@ print.summary.adpc <- function(x, ...) {
 #' clust <- adproclus_low_dim(x, 3, 1)
 #'
 #' # Produce three plots of the model
-#' plot(clust, type = "Network")
-#' plot(clust, type = "Profiles")
+#' plot(clust, type = "network")
+#' plot(clust, type = "profiles")
 #' plot(clust, type = "vars_by_comp")
 plot.adpc <- function(x,
-                      type = "Network",
-                      title = NULL,
-                      relative_overlap = TRUE,
+                      type = "network",
                       ...) {
   checkmate::assertClass(x, "adpc")
-  checkmate::assertChoice(type, c("Network", "Profiles", "vars_by_comp"))
-  checkmate::assertString(title, null.ok = TRUE)
-  checkmate::assertFlag(relative_overlap)
+  type = match.arg(tolower(type), c("network", "profiles", "vars_by_comp"))
+  checkmate::assertChoice(type, c("network", "profiles", "vars_by_comp"))
 
   # Check for illegal choice of vars_by_comp for full dim x is in plotVarsByComp()
   if (type == "vars_by_comp") {
-    plot_vars_by_comp(model = x, title = title, ...)
-  } else if (type == "Profiles") {
-    plot_profiles(model = x, title = title, ...)
+    plot_vars_by_comp(model = x, ...)
+  } else if (type == "profiles") {
+    plot_profiles(model = x, ...)
   } else {
     plot_cluster_network(
-      model = x, title = title,
-      relative_overlap = relative_overlap,
+      model = x,
       ...
     )
   }
@@ -333,7 +341,7 @@ plot.adpc <- function(x,
 #'
 #' @param x ADPROCLUS solution (class: \code{adpc})
 #' @param title String. Default: "ADPROCLUS solution"
-#' @param digits Integer. The number of digits that all decimal numbers will
+#' @param digits Integer. The number of decimal places that all decimal numbers will
 #' be rounded to.
 #' @param matrix_rows Integer. The number of matrix rows to display. OPTIONAL
 #' @param matrix_cols Integer. The number of matrix columns to display. OPTIONAL
@@ -374,17 +382,18 @@ print.adpc <- function(x,
     cat("   number of clusters:", ncol(x$A), "\n")
     cat("   number of components: ", ncol(x$C), "\n")
     cat("   data format: ", nrow(x$model), "x", ncol(x$model), "\n")
+    cat("   total time:", round(x$timer, digits), "s", "\n")
     cat("   number of total starts:",
-      n_randomstart + n_semirandomstart + 1 * !is.null(start_allocation),
+        n_randomstart + n_semirandomstart + 1 * !is.null(start_allocation),
       "\n"
     )
     if (!is.null(start_allocation)) {
       cat("   A rational start was also included.\n")
     }
-    cat("Results:", "\n")
+    cat("Results Best Run:", "\n")
     cat("   explained variance:", round(x$explvar, digits), "\n")
-    cat("   processing time:", round(x$timer, digits), "s", "\n")
-    cat("   iterations:", x$iterations, "\n")
+    cat("   time:", round(x$timer_one_run, digits), "s", "\n")
+    cat("   iterations to convergence:", x$iterations, "\n")
     cat("\n")
     cat("A (cluster membership matrix):", "\n")
     print(x$A[1:n_obs_inc, 1:n_clust_inc_col, drop = FALSE])
@@ -406,11 +415,13 @@ print.adpc <- function(x,
     if (n_var_true - n_var_inc > 0) {
       cat("[", n_var_true - n_var_inc, " columns were omitted ]\n")
     }
+    cat("\n")
   } else {
     cat(title, "\n")
     cat("Setup:", "\n")
     cat("   number of clusters:", ncol(x$A), "\n")
     cat("   data format: ", nrow(x$model), "x", ncol(x$model), "\n")
+    cat("   total time:", round(x$timer, digits), "s", "\n")
     cat("   number of total starts:",
       n_randomstart + n_semirandomstart + 1 * !is.null(start_allocation),
       "\n"
@@ -418,10 +429,11 @@ print.adpc <- function(x,
     if (!is.null(start_allocation)) {
       cat("   A rational start was also included.\n")
     }
-    cat("Results:", "\n")
+    cat("Results Best Run:", "\n")
     cat("   explained variance:", round(x$explvar, digits), "\n")
-    cat("   processing time:", round(x$timer, digits), "s", "\n")
-    cat("   iterations:", x$iterations, "\n")
+    cat("   time:", round(x$timer_one_run, digits), "s", "\n")
+    cat("   iterations to convergence:", x$iterations, "\n")
+    cat("\n")
     cat("A (cluster membership matrix):", "\n")
     print(x$A[1:n_obs_inc, 1:n_clust_inc_col, drop = FALSE])
     if (n_obs_true - n_obs_inc > 0) {
@@ -430,6 +442,7 @@ print.adpc <- function(x,
     if (n_clust_true - n_clust_inc_col > 0) {
       cat("[", n_clust_true - n_clust_inc_col, " columns were omitted ]\n")
     }
+    cat("\n")
     cat("P (profiles):", "\n")
     print(round(x$P[1:n_clust_inc_row, 1:n_var_inc, drop = FALSE], digits))
     if (n_clust_true - n_clust_inc_row > 0) {
@@ -438,5 +451,66 @@ print.adpc <- function(x,
     if (n_var_true - n_var_inc > 0) {
       cat("[", n_var_true - n_var_inc, " columns were omitted ]\n")
     }
+    cat("\n")
   }
 }
+
+#' Cluster Means based on Original Variables
+#'
+#' Obtain a cluster-by-variable dataframe where the values are the cluster means
+#' for the given variables. Takes as input a (low dimensional) ADPROCLUS model
+#' of class \code{adpc} and a dataset. This dataset must have the same number
+#' of rows as the cluster membership matrix $A$ of the model. The variables can
+#' be different from the ones the model was trained on. The function uses the
+#' cluster membership matrix of the model to computer per cluster the mean of
+#' the variables in the dataset. In the output matrix of cluster means,
+#' the last row \code{Cl0} corresponds to the baseline cluster consisting
+#' of all the observations that were not assigned to a cluster,
+#' if this cluster is not empty. This function effectively computes column means
+#' of the dataset separately for each cluster.
+#'
+#' It is worth noting that the output of this function is different
+#' from the last output matrix in the
+#' \code{summary()} method applied to an ADPROCLUS model.
+#' The former computes the means over the original variable values
+#' while the latter computes them over the approximated model variable values.
+#'
+#'
+#' @param data Object-by-variable matrix. Can contain other variables than
+#' the ADPROCLUS model. IMPORTANT: The number of rows must be equal to the
+#' number of observations in the ADPROCLUS model.
+#' @param model ADPROCLUS solution (class: \code{adpc}). Low dimensional model
+#' possible.
+#' @param digits Integer. The number of decimal places that all decimal numbers will
+#' be rounded to.
+#'
+#' @return Cluster-by-variable dataframe where the values are the cluster means
+#' for the given variable.
+#' @export
+#'
+#' @examples
+#' # Obtain data, compute model, report cluster means
+#' x <- CGdata
+#' model <- adproclus(x, 3)
+#' cluster_means(data = x, model = model)
+cluster_means <- function(data, model, digits = 3) {
+        checkmate::assert_class(model, "adpc")
+        data <- as.matrix(data)
+        checkmate::assert_matrix(data, any.missing = FALSE, nrows = nrow(model$A))
+        checkmate::assert_numeric(data)
+
+        results <- data.frame()
+        k <- ncol(model$A)
+        for (i in 1:k) {
+                results <- rbind(results, colMeans(data[which(model$A[,i] == 1),]))
+                rownames(results)[i] <- paste("Cl", i, sep = "")
+        }
+        if (sum(rowSums(model$A) == 0) != 0) {
+                results <- rbind(results, colMeans(data[which(rowSums(model$A) == 0),]))
+                rownames(results)[k+1] <- "Cl0"
+        }
+        colnames(results) <- colnames(data)
+        results <- round(results, digits)
+        results
+}
+

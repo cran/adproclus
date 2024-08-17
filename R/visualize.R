@@ -1,5 +1,163 @@
 # Visualization functions for an ADPROCLUS model
 
+if(getRversion() >= "2.15.1")  utils::globalVariables(c("clusters", "components", "Clusters"))
+
+#' Scree plot of (low dimensional) ADPROCLUS models
+#'
+#' Used for scree-plot based model selection. Visualizes a set of ADPROClUS models
+#' in terms of their number of clusters and model fit (SSE or unexplained variance).
+#' For low dimensional ADPROCLUS models plots are made with the number of
+#' components on the x-axis for each given number of clusters. One can then
+#' choose to have them displayed all in one plot (\code{grid = FALSE}) or next
+#' to each other in separate plots (\code{grid = TRUE}).
+#'
+#'
+#' @param model_fit Matrix of SSE or unexplained variance scores as given by the
+#' output of \code{\link{mselect_adproclus}} or
+#' \code{\link{mselect_adproclus_low_dim}}.
+#' @param title String. Optional title.
+#' @param grid Boolean. \code{FALSE} means for low dimensional ADPROCLUS all
+#' lines will be in one plot. \code{TRUE} means separate plots.
+#' @param digits Integer. The number of decimal places to display.
+#'
+#' @return Invisibly returns the \code{ggplot2} object.
+#' @export
+#'
+#' @examples
+#' # Loading a test dataset into the global environment
+#' x <- stackloss
+#'
+#' # Estimating models with cluster parameter values ranging from 1 to 4
+#' model_fits <- mselect_adproclus(data = x, min_nclusters = 1, max_nclusters = 4, seed = 1)
+#'
+#' # Plot the results as a scree plot to select the appropriate number of clusters
+#' plot_scree_adpc(model_fits)
+#'
+#' # Estimating models with cluster parameter values ranging from 1 to 4
+#' # and component parameter values also ranging from 1 to 4
+#' model_fits <- mselect_adproclus_low_dim(data = x, 1, 4, 1, 4, seed = 1)
+#'
+#' # Plot the results as a scree plot to select the appropriate number of clusters
+#' plot_scree_adpc(model_fits)
+#'
+#' @seealso
+#' \describe{
+#'   \item{\code{\link{mselect_adproclus}}}{to obtain the \code{model_fit} input from the possible ADPROCLUS models}
+#'   \item{\code{\link{mselect_adproclus_low_dim}}}{to obtain the \code{model_fit} input from the possible low dimensional ADPROCLUS models}
+#'   \item{\code{\link{select_by_CHull}}}{for automatic model selection via CHull method}
+#' }
+plot_scree_adpc <- function(model_fit,
+                          title = NULL,
+                          grid = FALSE,
+                          digits = 3) {
+        checkmate::assert_matrix(model_fit)
+        checkmate::assert_string(title, null.ok = TRUE)
+        checkmate::assert_count(digits, positive = TRUE, coerce = TRUE)
+
+        model_fit <- round(model_fit, digits)
+
+        # option for full dimensional model
+        if (ncol(model_fit) == 1) {
+                data <- data.frame(clusters = strtoi(rownames(model_fit)), model_fit[, 1])
+                colnames(data)[2] <- colnames(model_fit)
+                fit_var <- colnames(model_fit)
+                scree_plot <- ggplot2::ggplot(data, ggplot2::aes(x = clusters, y = !!(rlang::ensym(fit_var)))) +
+                        ggplot2::geom_line() +
+                        ggplot2::geom_point() +
+                        ggplot2::labs(x = "Number of Clusters", y = gsub("_", " ", fit_var), title = title) +
+                        ggplot2::scale_x_continuous(breaks = scales::breaks_extended(nrow(model_fit))) +
+                        ggplot2::scale_y_continuous(labels = scales::label_number(accuracy = 10^(-digits))) +
+                        ggplot2::theme_classic()
+        } else {
+                # option for low dimensional model
+                if (substring(colnames(model_fit)[[1]], 1, 1) == "S") {
+                        fit_var <- "SSE"
+                } else {
+                        fit_var <- "Unexplained_Variance"
+                }
+
+                data_wide <- data.frame(Clusters = strtoi(rownames(model_fit)), model_fit)
+                data <- tidyr::pivot_longer(data = data_wide,
+                                                 cols = !Clusters,
+                                                 names_to = "components",
+                                                 names_transform = readr::parse_number,
+                                                 values_to = fit_var)
+                data$Clusters <- as.factor(data$Clusters)
+
+                if (grid) {
+                        scree_plot <- ggplot2::ggplot(data, ggplot2::aes(x = components, y = !!(rlang::ensym(fit_var)), group = 1)) +
+                                ggplot2::geom_line() +
+                                ggplot2::geom_point() +
+                                ggplot2::labs(x = "Number of Components", y = gsub("_", " ", fit_var), title = title) +
+                                ggplot2::scale_x_continuous(breaks = scales::breaks_extended(nrow(model_fit))) +
+                                ggplot2::scale_y_continuous(labels = scales::label_number(accuracy = 10^(-digits))) +
+                                ggplot2::facet_wrap(ggplot2::vars(Clusters), labeller = "label_both") +
+                                ggplot2::theme_classic()
+                } else {
+                        scree_plot <- ggplot2::ggplot(data, ggplot2::aes(x = components, y = !!(rlang::ensym(fit_var)), color = Clusters)) +
+                                ggplot2::geom_line() +
+                                ggplot2::geom_point() +
+                                ggplot2::scale_color_manual(values = c("blue", "red", "green", "black")) +
+                                ggplot2::labs(x = "Number of Components", y = gsub("_", " ", fit_var), title = title) +
+                                ggplot2::scale_x_continuous(breaks = scales::breaks_extended(nrow(model_fit))) +
+                                ggplot2::scale_y_continuous(labels = scales::label_number(accuracy = 10^(-digits))) +
+                                ggplot2::theme_classic()
+                }
+        }
+        suppressWarnings(print(scree_plot))
+        invisible(scree_plot)
+}
+
+#' Scree plot of a pre-selection of low dimensional ADPROCLUS models
+#'
+#' To be used when one has selected a number of components for each number
+#' of clusters. Plots the remaining sets of models to compare SSE or unexplained
+#' variances. The input \code{model_fit} is supposed to be the output from the
+#' \code{\link{select_by_CHull}} function applied to the output from
+#' the \code{\link{mselect_adproclus_low_dim}} function.
+#'
+#' @param model_fit Matrix with SSE or unexplained variance values.
+#' Can be obtained from \code{\link{select_by_CHull}}.
+#' @param title String. Optional title.
+#' @param digits Integer. The number of decimal places to display.
+#'
+#' @return Returns the \code{ggplot2} object.
+#' @export
+#'
+#' @examples
+#' # Loading a test dataset into the global environment
+#' x <- stackloss
+#'
+#' # Estimating models with cluster parameter values ranging from 1 to 4
+#' # and component parameter values also ranging from 1 to 4
+#' model_fits <- mselect_adproclus_low_dim(data = x, 1, 4, 1, 4, seed = 1)
+#'
+#' # Choosing for each number of cluster the best number of components
+#' model_fits_preselected <- select_by_CHull(model_fits)
+#'
+#' # Plot the results as a scree plot to select the appropriate number of clusters
+#' plot_scree_adpc_preselected(model_fits_preselected)
+plot_scree_adpc_preselected <- function(model_fit,
+                             title = NULL,
+                             digits = 3) {
+        checkmate::assert_matrix(model_fit)
+        checkmate::assert_string(title, null.ok = TRUE)
+        checkmate::assert_count(digits, positive = TRUE, coerce = TRUE)
+
+        model_fit <- round(model_fit, digits)
+
+        fit_var <- colnames(model_fit)[3]
+        scree_plot <- ggplot2::ggplot(data.frame(model_fit), ggplot2::aes(x = clusters, y = !!(rlang::ensym(fit_var)), label = rownames(model_fit))) +
+                ggplot2::geom_line() +
+                ggplot2::geom_point() +
+                ggrepel::geom_label_repel(box.padding = 0.5, segment.linetype = 0) +
+                ggplot2::labs(x = "Number of Clusters", y = gsub("_", " ", fit_var), title = title) +
+                ggplot2::scale_x_continuous(breaks = scales::breaks_extended(nrow(model_fit))) +
+                ggplot2::scale_y_continuous(labels = scales::label_number(accuracy = 10^(-digits))) +
+                ggplot2::theme_classic()
+        scree_plot
+}
+
 #' Network plot of a (low dimensional) ADPROCLUS solution
 #'
 #' Produce a representation of a (low dimensional) ADPROCLUS solution,
@@ -12,7 +170,7 @@
 #' (number of overlap observations / total observations)
 #' or absolute (number of observations in both clusters).
 #' \strong{NOTE:} This function can be called through the
-#' \code{plot(model, type = "Network")} function with model an
+#' \code{plot(model, type = "network")} function with model an
 #' object of class \code{adpc}.
 #'
 #' @param model ADPROCLUS solution (class: \code{adpc}). Low dimensional model
@@ -22,11 +180,11 @@
 #' is divided by the total number of observations. If \code{FALSE}
 #' the number of observations in a cluster overlap will be displayed on the
 #' edges.
-#' @param title String. Default: " Cluster network of ADPROCLUS solution"
+#' @param title String. Optional title.
 #' @param filetype Optional. Choose type of file to save the plot.
 #' Possible choices: \code{"R", "pdf", "svg", "tex", "jpg", "tiff", "png", ""}
 #' Default: \code{NULL} does not create a file.
-#' @param filename Optional. Name of the file without extension.
+#' @param filename Optional. Name of the file without extension. Default: "network_plot"
 #' @param ... Additional arguments passing to the
 #' \code{qgraph::qgraph()} function, to customize the graph visualization.
 #'
@@ -43,10 +201,10 @@
 #' # Plot the overlapping the clusters
 #' plot_cluster_network(clust)
 plot_cluster_network <- function(model,
-                                 title = "Cluster network of ADPROCLUS solution",
+                                 title = NULL,
                                  relative_overlap = TRUE,
                                  filetype = NULL,
-                                 filename = NULL,
+                                 filename = 'network_plot',
                                  ...) {
   checkmate::assertClass(model, "adpc")
   checkmate::assertString(title, null.ok = TRUE)
@@ -58,11 +216,6 @@ plot_cluster_network <- function(model,
   null.ok = TRUE
   )
   checkmate::assertString(filename, null.ok = TRUE)
-
-  if (is.null(title)) {
-    title <- "Cluster network of ADPROCLUS solution"
-  }
-
 
   withr::local_seed(1)
 
@@ -160,12 +313,13 @@ plot_cluster_network <- function(model,
 #' solution of class \code{adpc}.
 #' The plot displays the profiles in the style of a correlation plot.
 #' \strong{NOTE:} This function can also be called through the
-#' \code{plot(model, type = "Profiles")} function with model an object of
+#' \code{plot(model, type = "profiles")} function with model an object of
 #' class \code{adpc}.
 #'
 #' @param model Object of class \code{adpc}. (Low dimensional) ADPROCLUS
 #' solution
-#' @param title String. Default: "Profiles of ADPROCLUS solution"
+#' @param title String. Optional title.
+#' @param label_color String. The color of the text labels. Default: "black"
 #' @param ... Additional arguments passing to the
 #' \code{corrplot::corrplot()} function, to customize the plot.
 #'
@@ -182,27 +336,21 @@ plot_cluster_network <- function(model,
 #' # Plot the profile scores of each cluster
 #' plot_profiles(clust)
 plot_profiles <- function(model,
-                          title = "Profiles of ADPROCLUS solution",
+                          title = NULL,
+                          label_color = "black",
                           ...) {
         checkmate::assertClass(model, "adpc")
         checkmate::assertString(title, null.ok = TRUE)
-
-        if (is.null(title)) {
-                title <- "Profiles of ADPROCLUS solution"
-        }
         if (is.null(model$C)) {
                 corrplot::corrplot(model$P,
                                    is.corr = FALSE, title = title,
-                                   mar = c(0, 0, 2, 0),
+                                   tl.col = label_color,
                                    ...
                 )
         } else {
-                if (title == "Profiles of ADPROCLUS solution") {
-                        title <- "Low dim Profiles C of ADPROCLUS solution"
-                }
                 corrplot::corrplot(model$C,
                                    is.corr = FALSE, title = title,
-                                   mar = c(0, 0, 2, 0),
+                                   tl.col = label_color,
                                    ...
                 )
         }
@@ -216,12 +364,13 @@ plot_profiles <- function(model,
 #' of class \code{adpc}. The plot displays the scores in the style of a
 #' correlation plot.
 #' \strong{NOTE:} This function can be called through the
-#' \code{plot(model, type = "VarsByComp")} function
+#' \code{plot(model, type = "vars_by_comp")} function
 #' with model an object of class \code{adpc}.
 #'
 #' @param model Object of class \code{adpc}. Must be \strong{Low dimensional}
 #' ADPROCLUS solution
-#' @param title String. Default: "B' of Low Dimensional ADPROCLUS Solution"
+#' @param title String. Optional title.
+#' @param label_color String. The color of the text labels. Default: "black"
 #' @param ... Additional arguments passing to the
 #' \code{corrplot::corrplot()} function, to customize the plot
 #'
@@ -238,20 +387,16 @@ plot_profiles <- function(model,
 #' # Plot the matrix B', connecting components with variables
 #' plot_vars_by_comp(clust)
 plot_vars_by_comp <- function(model,
-                              title = "B' of Low Dimensional ADPROCLUS Solution",
+                              title = NULL,
+                              label_color = "black",
                               ...) {
         checkmate::assertClass(model, "adpc")
-        checkmate::assertString(title, null.ok = TRUE)
-
-        if (is.null(title)) {
-                title <- "B' of Low Dimensional ADPROCLUS Solution"
-        }
         if (is.null(model$C)) {
                 stop("Model must be a low dimensional ADPROCLUS solution.")
         }
         corrplot::corrplot(t(model$B),
                            is.corr = FALSE, title = title,
-                           mar = c(0, 0, 2, 0),
+                           tl.col = label_color,
                            ...
         )
         invisible(model)

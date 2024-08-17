@@ -77,10 +77,8 @@ NULL
 #'   of \code{data}.}
 #'   \item{\code{explvar}}{numeric. The proportion of variance
 #'   in \code{data} that is accounted for by the clustering model.}
-#'   \item{\code{iterations}}{numeric. The number of iterations of the
-#'   algorithm.}
-#'   \item{\code{timer}}{numeric. The amount of time (in seconds) the complete
-#'   algorithm ran for.}
+#'   \item{\code{iterations}}{numeric. The number of algorithm iterations
+#'   until convergence of the relevant single start.}
 #'   \item{\code{timer_one_run}}{numeric. The amount of time (in seconds) the
 #'   relevant single start ran for.}
 #'   \item{\code{initial_start}}{list. Containing the initial
@@ -92,7 +90,9 @@ NULL
 #'   Each element contains all of the above information for the
 #'   respective start.}
 #'   \item{\code{parameters}}{list. Contains the parameters used for the
-#'   model.}}
+#'   model.}
+#'   \item{\code{timer}}{numeric. The amount of time (in seconds) the complete
+#'   algorithm ran for.}}
 #'
 #' @export
 #'
@@ -145,7 +145,7 @@ NULL
 adproclus <- function(data, nclusters,
                       start_allocation = NULL,
                       nrandomstart = 3, nsemirandomstart = 3,
-                      algorithm = "ALS1",
+                      algorithm = "ALS2",
                       save_all_starts = FALSE,
                       seed = NULL) {
   t <- proc.time()
@@ -398,10 +398,8 @@ adproclus <- function(data, nclusters,
 #'   of \code{data}.}
 #'   \item{\code{explvar}}{numeric. The proportion of variance
 #'   in \code{data} that is accounted for by the clustering model.}
-#'   \item{\code{iterations}}{numeric. The number of iterations of the
-#'   algorithm.}
-#'   \item{\code{timer}}{numeric. The amount of time (in seconds) the complete
-#'   algorithm ran for.}
+#'   \item{\code{iterations}}{numeric. The number of algorithm iterations
+#'   until convergence of the relevant single start.}
 #'   \item{\code{timer_one_run}}{numeric. The amount of time (in seconds) the
 #'   relevant single start ran for.}
 #'   \item{\code{initial_start}}{list. A list containing the initial
@@ -412,7 +410,9 @@ adproclus <- function(data, nclusters,
 #'   from one of the multiple starts.
 #'   Each element contains all of the above information.}
 #'   \item{\code{parameters}}{list. Containing the parameters used for the
-#'   model.}}
+#'   model.}
+#'   \item{\code{timer}}{numeric. The amount of time (in seconds) the complete
+#'   algorithm ran for.}}
 #'
 #' @export
 #'
