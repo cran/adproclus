@@ -1,6 +1,6 @@
-2212f4ff8771f205eef1faea1cd67136 *DESCRIPTION
+5f3ada7b8f9ffc8f88b1d4ae5b576ed0 *DESCRIPTION
 37ffa37461e58451cda219986f457bf1 *NAMESPACE
-c5432d316d03a81df57f79fbf58246e4 *NEWS.md
+91b75c59e2817fac3b2dd0a111839136 *NEWS.md
 0ea0a2c09f9ae38d2471b4d3dc2a1eef *R/adproclus-package.R
 4baa4ab1e0aa484798e3dd783e354ac4 *R/adproclus_classes.R
 cc9b13655dc97b057f028176119d4359 *R/clustering.R
@@ -9,7 +9,7 @@ b4de14a5641160b03a7967e469bc4124 *R/get_starts.R
 f60cbf1b932c2b535624a7abbf171efe *R/model_selection.R
 c41262f9b05950f074bc06cbfa4384a1 *R/utils.R
 0b474b45fe7d0e97ff7df86d7fa34e1b *R/visualize.R
-8bb5712bcc1a0b4c0c14d5d60d66f357 *README.md
+1cd1baf92ece8f21c1973a5c1edb2441 *README.md
 b54db8794555342c4feee5fe0b1b8f5b *build/partial.rdb
 b4919c96388c340a6552f56493f84c07 *data/CGdata.rda
 69eadf047ee53abbfc81163ee9cf39f2 *man/CGdata.Rd
@@ -18,9 +18,9 @@ b4919c96388c340a6552f56493f84c07 *data/CGdata.rda
 9b80677e1c6967024488ec794cbddd5b *man/adproclus.Rd
 d6264b56563ffd56c0de14ee529b42ea *man/adproclus_low_dim.Rd
 a6946bbf863ee525565f1ad435c1ede5 *man/cluster_means.Rd
-9eef28e4bac45354c5a0b72690291df3 *man/figures/README-example_3-1.png
-bc7bbb6c9af04ea8971ed4d262e5e642 *man/figures/README-example_3-2.png
-2d3e4b1262114f5a62bf20a1a0d85022 *man/figures/README-example_3-3.png
+ab11e6549895e04f0adf8cd9c82cb8fa *man/figures/README-example_3-1.png
+52cc32cf2da3639febe7b9cfc70b71d1 *man/figures/README-example_3-2.png
+55eb3911da35e24ffd591b1b0979ec1a *man/figures/README-example_3-3.png
 502a5f8dd6ba90060101596366cb7d58 *man/figures/README-pressure-1.png
 f05b890fac5bb8bee0e14076c4cb4d73 *man/get_random.Rd
 21a895c5ed14a14bc4b5fd2125bbc20e *man/get_rational.Rd
@@ -42,4 +42,4 @@ f222af94265199476b4d8c1f90582ee6 *tests/testthat/test-adproclus_classes.R
 dd50920d94265405d141bf954e3f42ca *tests/testthat/test-clustering.R
 5ea92073a827edaca7105eb973a05c6e *tests/testthat/test-get_starts.R
 eb519e5b36074c0cc0dc95f200846755 *tests/testthat/test-model_selection.R
-6a4261f325d4721d43ca43fbf83b079e *tests/testthat/test-visualize.R
+842a25f6fd8f183b1e83599cb98b474e *tests/testthat/test-visualize.R
